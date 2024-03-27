@@ -119,10 +119,10 @@ def find_unique_id(used_ids):
 
 def argsMain() -> None:
     parser = argparse.ArgumentParser(description='Convert COCO-formatted XML annotations to TFRecord.')
-    parser.add_argument('-annDir', type=str, help='Path to the Annotations directory')
-    parser.add_argument('-imageDir', type=str, help='Path to the images directory')
-    parser.add_argument('-recordOutput', type=str, help='Output Path for TFRecord')
-    parser.add_argument('-labelOutput', type=str, help='Output Path for label map')
+    parser.add_argument('--annDir', type=str, help='Path to the Annotations directory')
+    parser.add_argument('--imageDir', type=str, help='Path to the images directory')
+    parser.add_argument('--recordOutput', type=str, help='Output Path for TFRecord')
+    parser.add_argument('--labelOutput', type=str, help='Output Path for label map')
 
     args = parser.parse_args()
 

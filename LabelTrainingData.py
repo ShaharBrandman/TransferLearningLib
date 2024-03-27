@@ -68,13 +68,11 @@ def saveAsCOCOXML(boxes, classes, scores, imageShape, imagePath):
 
 category_index = None
 
-def predict(path):
+def predict(imagePath, label_map_path = 'labels.pbtxt'):
     global category_index
     model = initModel()
 
-    image = preproccess(path)
-
-    label_map_path = 'labels.pbtxt' 
+    image = preproccess(imagePath)
     category_index = label_map_util.create_category_index_from_labelmap(label_map_path, use_display_name=True)
     
     infer = model.signatures["serving_default"]

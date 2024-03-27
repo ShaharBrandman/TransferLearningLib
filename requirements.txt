@@ -1,1 +1,2 @@
 tensorflow
+firebase_admin
