@@ -44,7 +44,7 @@ def saveAsCOCOXML(boxes, classes, scores, imageShape, fileDetails: tuple) -> Non
 
     outputDir = outputPath.split('/')
     outputDir = os.path.join(outputDir[0], outputDir[1], outputDir[2])
-    
+
     os.makedirs(outputDir, exist_ok=True)
 
     root = ET.Element("annotation")
@@ -217,4 +217,4 @@ def main() -> None:
     predictDirectory('data/images/', 'data/default_mobilnetv2_labels.pbtxt', 'data/annotations/')
 
 if __name__ == '__main__':
-    main()
+    argsMain()

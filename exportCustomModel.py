@@ -1,35 +1,36 @@
+import os
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras import layers, models
 
-# Load MobileNetV2 pre-trained on ImageNet data without the top (classification) layer
-base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+def findNumberOfClasses() -> int:
+    pass
 
-# Freeze the pre-trained layers
-for layer in base_model.layers:
-    layer.trainable = False
+def main() -> None:
+    base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
-# Add custom layers for classification and localization
-x = base_model.output
-x = layers.GlobalAveragePooling2D()(x)
-x = layers.Dense(256, activation='relu')(x)
+    for layer in base_model.layers:
+        layer.trainable = False
 
-num_classes = 2
+    x = base_model.output
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(256, activation='relu')(x)
 
-# For classification
-output_class = layers.Dense(num_classes, activation='softmax', name='output_class')(x)
+    num_classes = findNumberOfClasses()
 
-# For localization (four coordinates)
-output_bbox = layers.Dense(4, name='output_bbox')(x)
+    output_class = layers.Dense(num_classes, activation='softmax', name='output_class')(x)
 
-# Combine both outputs
-model = models.Model(inputs=base_model.input, outputs=[output_class, output_bbox])
+    output_bbox = layers.Dense(4, name='output_bbox')(x)
 
-# Compile the model (you may need to adjust the loss functions and metrics based on your task)
-model.compile(optimizer='adam',
-              loss={'output_class': 'sparse_categorical_crossentropy', 'output_bbox': 'mse'},
-              metrics={'output_class': 'accuracy', 'output_bbox': 'mae'})
+    model = models.Model(inputs=base_model.input, outputs=[output_class, output_bbox])
 
-model.summary()
+    model.compile(optimizer='adam',
+                loss={'output_class': 'sparse_categorical_crossentropy', 'output_bbox': 'mse'},
+                metrics={'output_class': 'accuracy', 'output_bbox': 'mae'})
 
-model.save('CustomMobileNetV2')
+    model.summary()
+
+    model.save('CustomMobileNetV2')
+
+if __name__ == '__main__':
+    main()
