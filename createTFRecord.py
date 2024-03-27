@@ -1,31 +1,40 @@
 import os
 import argparse
 import io
-import tensorflow as tf
 import xml.etree.ElementTree as ET
 
+import tensorflow as tf
+
 from PIL import Image
+
 from object_detection.utils import dataset_util
 
-def createTFExample(xmlPath, imagePath, labelMapDict):
+#create a tfrecord example file from xml and images paths and a labelMap dictionary
+def createTFExample(xmlPath, imagePath, labelMapDict) -> tf.train.Example:
+    #read content from xml file
     with tf.io.gfile.GFile(xmlPath, 'r') as fid:
-        xml_str = fid.read()
+        xmlFileContent = fid.read()
         fid.close()
-    xml = ET.fromstring(xml_str)
 
+    xml = ET.fromstring(xmlFileContent)
+
+    #read image and convert it to bytes
     with tf.io.gfile.GFile(imagePath, 'rb') as fid:
-        encoded_jpg = fid.read()
+        encodedJpg = fid.read()
         fid.close()
-        
-    encoded_jpg_io = io.BytesIO(encoded_jpg)
-    image = Image.open(encoded_jpg_io)
+
+    #ininitlize image and extracts its dimensions
+    image = Image.open(io.BytesIO(encodedJpg))
     width, height = image.size
 
     filename = os.path.basename(imagePath).encode('utf8')
+    print(filename)
+    
+    #assign an image format, feel free to change it to whatever you wish
     image_format = b'jpeg'
 
     xmins, xmaxs, ymins, ymaxs = [], [], [], []
-    classes_text, classes = [], []
+    classesText, classes = [], []
 
     for obj in xml.findall('object'):
         xmin = float(obj.find('bndbox/xmin').text)
@@ -38,11 +47,11 @@ def createTFExample(xmlPath, imagePath, labelMapDict):
         ymins.append(max(0, ymin / float(height)))
         ymaxs.append(min(1, ymax / float(height)))
 
-        class_name = obj.find('name').text.replace("'", '')
-        classes_text.append(class_name.encode('utf8'))
-        classes.append(labelMapDict[class_name])
+        className = obj.find('name').text.replace("'", '')
+        classesText.append(className.encode('utf8'))
+        classes.append(labelMapDict[className])
 
-    tf_example = tf.train.Example(features=tf.train.Features(feature={
+    return tf.train.Example(features=tf.train.Features(feature={
         'image/height': dataset_util.int64_feature(height),
         'image/width': dataset_util.int64_feature(width),
         'image/filename': dataset_util.bytes_feature(filename),
@@ -53,76 +62,103 @@ def createTFExample(xmlPath, imagePath, labelMapDict):
         'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
         'image/object/bbox/ymin': dataset_util.float_list_feature(ymins),
         'image/object/bbox/ymax': dataset_util.float_list_feature(ymaxs),
-        'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
+        'image/object/class/text': dataset_util.bytes_list_feature(classesText),
         'image/object/class/label': dataset_util.int64_list_feature(classes),
     }))
 
-    return tf_example
-
-def xml_to_tfrecord(xmlDir, imageDir, record_output, label_output):
-    label_map_dict = {}
-    used_ids = set()
+#convert coco xml formatted dataset into tfrecord and labelmap files
+def xml_to_tfrecord(xmlDir, imageDir, recordPath, labelMapPath):
+    labelMapDict = {}
+    usedIds = set()
 
     for xmlFile in os.listdir(xmlDir):
         if xmlFile.endswith('.xml'):
-            xml_path = os.path.join(xmlDir, xmlFile)
+            xmlPath = os.path.join(xmlDir, xmlFile)
             image_file = os.path.join(imageDir, xmlFile.replace('.xml', ''))
 
-            extracted_label_map = extract_label_map(xml_path, used_ids)
-            label_map_dict.update(extracted_label_map)
+            labelMapDict.update(extractLabelMap(xmlPath, usedIds))
 
-    with open(os.path.join(label_output, 'train_label_map.pbtxt'), 'w', encoding='utf-8') as f:
-        for idx, (class_name, class_id) in enumerate(sorted(label_map_dict.items())):
+    with open(os.path.join(labelMapPath, 'train_label_map.pbtxt'), 'w', encoding='utf-8') as f:
+        for idx, (className, classId) in enumerate(sorted(labelMapDict.items())):
             f.write('item {\n')
             f.write(f'  id: {idx + 1}\n')
-            f.write(f'  name: \'{class_name}\'\n')
+            f.write(f'  name: \'{className}\'\n')
             f.write('}\n')
 
         f.close()
 
-    record_file = os.path.join(record_output, 'train.tfrecord')
-    with tf.io.TFRecordWriter(record_file) as f:
+    record: str = os.path.join(recordPath, 'train.tfrecord')
+    with tf.io.TFRecordWriter(record) as f:
         for xmlFile in os.listdir(xmlDir):
             if xmlFile.endswith('.xml'):
-                xml_path = os.path.join(xmlDir, xmlFile)
+                xmlPath = os.path.join(xmlDir, xmlFile)
                 
-                image_file = os.path.join(imageDir, xmlFile.replace('.xml', '.jpg'))
+                imagePath = os.path.join(imageDir, xmlFile.replace('.xml', '.jpg'))
                 
-                tf_example = createTFExample(xml_path, image_file, label_map_dict)
+                tf_example = createTFExample(xmlPath, imagePath, labelMapDict)
 
                 f.write(tf_example.SerializeToString())
         f.close()
 
-    print(f'TFRecord written to: {record_file}')
-    print(f'Label map written to: {os.path.join(label_output, "label_map.pbtxt")}')
+    print(f'TFRecord written to: {record}')
+    print(f'Label map written to: {os.path.join(labelMapPath, "label_map.pbtxt")}')
 
-def extract_label_map(xml_path, used_ids):
-    label_map_dict = {}
-    with tf.io.gfile.GFile(xml_path, 'r') as fid:
-        xml_str = fid.read()
-    xml = ET.fromstring(xml_str)
+def extractLabelMap(xmlPath, usedIds):
+    labelMap = {}
+    
+    #read xml file contents
+    with tf.io.gfile.GFile(xmlPath, 'r') as fid:
+        xmlContent = fid.read()
 
+    xml = ET.fromstring(xmlContent)
+
+    #find all subelements named object
     for obj in xml.findall('object'):
-        class_name = obj.find('name').text
-        if class_name not in label_map_dict:
-            label_id = find_unique_id(used_ids)
-            label_map_dict[class_name.replace("'", '')] = label_id
-            used_ids.add(label_id)
+        #extract the object name
+        name = obj.find('name').text
+        if name not in labelMap:
+            labelId = findUniqueID(usedIds)
+            labelMap[name.replace("'", '')] = labelId
+            usedIds.add(labelId)
 
-    return label_map_dict
+    return labelMap
 
-def find_unique_id(used_ids):
-    label_id = 1
-    while label_id in used_ids:
-        label_id += 1
-    return label_id
+def findUniqueID(usedIds):
+    id = 1
+    while id in usedIds:
+        id += 1
+    return id
 
 def argsMain() -> None:
     parser = argparse.ArgumentParser(description='Convert COCO-formatted XML annotations to TFRecord.')
-    parser.add_argument('--annDir', type=str, help='Path to the Annotations directory')
-    parser.add_argument('--imageDir', type=str, help='Path to the images directory')
-    parser.add_argument('--recordOutput', type=str, help='Output Path for TFRecord')
-    parser.add_argument('--labelOutput', type=str, help='Output Path for label map')
+    
+    parser.add_argument(
+        '--annDir',
+        type=str,
+        help='Path to the Annotations directory',
+        required=True
+    )
+    
+    parser.add_argument(
+        '--imageDir',
+        type=str,
+        help='Path to the images directory',
+        required=True
+    )
+    
+    parser.add_argument(
+        '--recordOutput',
+        type=str,
+        help='Output Path for TFRecord',
+        required=True
+    )
+    
+    parser.add_argument(
+        '--labelOutput',
+        type=str,
+        help='Output Path for label map',
+        required=True
+    )
 
     args = parser.parse_args()
 

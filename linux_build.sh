@@ -2,6 +2,10 @@
 
 pip install -r requirements.txt
 
+wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v2_coco_2018_03_29.tar.gz
+
+tar -zxf ssd_mobilenet_v2_coco_2018_03_29.tar.gz
+
 python3 downloadFromFirebase.py
 
 python3 LabelTrainingData.py

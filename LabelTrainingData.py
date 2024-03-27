@@ -7,9 +7,7 @@ from object_detection.utils import visualization_utils as vis_util
 
 import xml.etree.ElementTree as ET
 
-DEFAULT_MODEL_PATH = "ssd_mobilenet_v2_coco_2018_03_29/saved_model"
-
-def initModel(modelPath = DEFAULT_MODEL_PATH):
+def initModel(modelPath:str = 'ssd_mobilenet_v2_coco_2018_03_29/saved_model'):
     return tf.saved_model.load(modelPath)
 
 def preproccess(path):
@@ -68,7 +66,7 @@ def saveAsCOCOXML(boxes, classes, scores, imageShape, imagePath):
 
 category_index = None
 
-def predict(imagePath, label_map_path = 'labels.pbtxt'):
+def predict(imagePath, label_map_path = 'data/default_mobilnetv2_labels.pbtxt'):
     global category_index
     model = initModel()
 
