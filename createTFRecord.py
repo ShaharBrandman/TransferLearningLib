@@ -28,7 +28,7 @@ def createTFExample(xmlPath, imagePath, labelMapDict) -> tf.train.Example:
     width, height = image.size
 
     filename = os.path.basename(imagePath).encode('utf8')
-    print(filename)
+    
     
     #assign an image format, feel free to change it to whatever you wish
     image_format = b'jpeg'
@@ -56,7 +56,7 @@ def createTFExample(xmlPath, imagePath, labelMapDict) -> tf.train.Example:
         'image/width': dataset_util.int64_feature(width),
         'image/filename': dataset_util.bytes_feature(filename),
         'image/source_id': dataset_util.bytes_feature(filename),
-        'image/encoded': dataset_util.bytes_feature(encoded_jpg),
+        'image/encoded': dataset_util.bytes_feature(encodedJpg),
         'image/format': dataset_util.bytes_feature(image_format),
         'image/object/bbox/xmin': dataset_util.float_list_feature(xmins),
         'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
@@ -71,12 +71,13 @@ def xml_to_tfrecord(xmlDir, imageDir, recordPath, labelMapPath):
     labelMapDict = {}
     usedIds = set()
 
-    for xmlFile in os.listdir(xmlDir):
-        if xmlFile.endswith('.xml'):
-            xmlPath = os.path.join(xmlDir, xmlFile)
-            image_file = os.path.join(imageDir, xmlFile.replace('.xml', ''))
+    for xmlFolder in os.listdir(xmlDir):
+        for xmlFile in os.listdir(os.path.join(xmlDir, xmlFolder)):
+            if xmlFile.endswith('.xml'):
+                xmlPath = os.path.join(xmlDir, xmlFolder, xmlFile)
+                image_file = os.path.join(imageDir, xmlFile.replace('.xml', ''))
 
-            labelMapDict.update(extractLabelMap(xmlPath, usedIds))
+                labelMapDict.update(extractLabelMap(xmlPath, usedIds))
 
     with open(os.path.join(labelMapPath, 'train_label_map.pbtxt'), 'w', encoding='utf-8') as f:
         for idx, (className, classId) in enumerate(sorted(labelMapDict.items())):
@@ -89,15 +90,16 @@ def xml_to_tfrecord(xmlDir, imageDir, recordPath, labelMapPath):
 
     record: str = os.path.join(recordPath, 'train.tfrecord')
     with tf.io.TFRecordWriter(record) as f:
-        for xmlFile in os.listdir(xmlDir):
-            if xmlFile.endswith('.xml'):
-                xmlPath = os.path.join(xmlDir, xmlFile)
-                
-                imagePath = os.path.join(imageDir, xmlFile.replace('.xml', '.jpg'))
-                
-                tf_example = createTFExample(xmlPath, imagePath, labelMapDict)
+        for xmlFolder in os.listdir(xmlDir):
+            for xmlFile in os.listdir(os.path.join(xmlDir, xmlFolder)):
+                if xmlFile.endswith('.xml'):
+                    xmlPath = os.path.join(xmlDir, xmlFolder, xmlFile)
+                    
+                    imagePath = os.path.join(os.path.join(imageDir, xmlFolder), xmlFile.replace('.xml', '.jpeg'))
+                    
+                    tf_example = createTFExample(xmlPath, imagePath, labelMapDict)
 
-                f.write(tf_example.SerializeToString())
+                    f.write(tf_example.SerializeToString())
         f.close()
 
     print(f'TFRecord written to: {record}')

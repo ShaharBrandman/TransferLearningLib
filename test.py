@@ -1,69 +1,57 @@
-import os
-import xml.etree.ElementTree as ET
-import numpy as np
-import cv2
 import tensorflow as tf
-from object_detection.utils import label_map_util
+import matplotlib.pyplot as plt
 
-def initModel(): 
-    model = tf.saved_model.load("ssd_mobilenet_v2_coco_2018_03_29/saved_model")
-    return model
+def initModel():
+    return tf.keras.models.load_model('CustomMobileNetV2')
 
-def preproccess(path):
-    image = cv2.imread(path)
-    print(image)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return tf.convert_to_tensor(np.expand_dims(image, 0), dtype=tf.uint8)
+def loadLabelMap(labelMapPath):
+    t = {}
+    with open(labelMapPath, 'r') as file:
+        for line in file:
+            if "id:" in line:
+                currentId = int(line.split(":")[1].strip())
+            elif "name:" in line:
+                t[currentId] = line.split(":")[1].strip().strip("'")
+    return t
 
-def create_coco_xml(image_path, boxes, classes, scores, output_path):
-    root = ET.Element("annotation")
+def visPrediction(imagePath, label, bbox):
+    img = plt.imread(imagePath)
+    plt.imshow(img)
+    plt.gca().add_patch(plt.Rectangle((bbox[0], bbox[2]), bbox[1] - bbox[0], bbox[3] - bbox[2], fill=False, edgecolor='r', linewidth=2))
+    plt.text(bbox[0], bbox[2] - 5, label, color='red')
+    plt.axis('off')
+    plt.show()
 
-    folder = ET.SubElement(root, "folder")
-    folder.text = os.path.dirname(image_path)
-
-    filename = ET.SubElement(root, "filename")
-    filename.text = os.path.basename(image_path)
-
-    size = ET.SubElement(root, "size")
-    height, width, channels = cv2.imread(image_path).shape
-    ET.SubElement(size, "width").text = str(width)
-    ET.SubElement(size, "height").text = str(height)
-    ET.SubElement(size, "depth").text = str(channels)
-
-    for box, class_id, score in zip(boxes, classes, scores):
-        object_elem = ET.SubElement(root, "object")
-
-        ET.SubElement(object_elem, "name").text = str(class_id)
-        ET.SubElement(object_elem, "pose").text = "Unspecified"
-        ET.SubElement(object_elem, "truncated").text = "0"
-        ET.SubElement(object_elem, "difficult").text = "0"
-
-        bndbox = ET.SubElement(object_elem, "bndbox")
-        ymin, xmin, ymax, xmax = box
-        ET.SubElement(bndbox, "xmin").text = str(int(xmin * width))
-        ET.SubElement(bndbox, "ymin").text = str(int(ymin * height))
-        ET.SubElement(bndbox, "xmax").text = str(int(xmax * width))
-        ET.SubElement(bndbox, "ymax").text = str(int(ymax * height))
-
-    tree = ET.ElementTree(root)
-    tree.write(output_path)
-
-def predict(image, output_path):
+def inference(imagePath, labelMap):
     model = initModel()
 
-    image = preproccess(image)
+    img = plt.imread(imagePath)
+    original_shape = img.shape[:2]
 
-    label_map_path = 'labels.pbtxt' 
-    category_index = label_map_util.create_category_index_from_labelmap(label_map_path, use_display_name=True)
+    img = tf.image.resize(img, (224, 224))
+    img = img / 255.0
 
-    infer = model.signatures["serving_default"]
+    classes, bbox = model.predict(tf.expand_dims(img, axis=0))
 
-    detections = infer(image)
+    classId = tf.argmax(classes, axis=1).numpy()[0]
+    label = labelMap[classId]
 
-    boxes = detections['detection_boxes'][0].numpy()
-    classes = detections['detection_classes'][0].numpy().astype(np.uint8)
-    scores = detections['detection_scores'][0].numpy()
+    xmin, xmax, ymin, ymax = bbox[0]
 
-    create_coco_xml(image_path, boxes, classes, scores, output_path)
+    # Scaling bounding box back to original image size
+    xmin = int(xmin * original_shape[1])
+    xmax = int(xmax * original_shape[1])
+    ymin = int(ymin * original_shape[0])
+    ymax = int(ymax * original_shape[0])
 
-predict('1.jpeg', 'output.xml')
+    print(f'predicted label: {label}')
+    print(f'predicted boxes: {xmin, xmax, ymin, ymax}')
+
+    visPrediction(imagePath, label, (xmin, xmax, ymin, ymax))
+
+def main() -> None:
+    labelMap = loadLabelMap('data/train_label_map.pbtxt')
+    inference('data/images/person-shahar/16.jpeg', labelMap)
+
+if __name__ == '__main__':
+    main()
