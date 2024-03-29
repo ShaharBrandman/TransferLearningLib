@@ -35,14 +35,14 @@ def parseSingleTFRecord(record):
 
 def getDataset(tfrecordPath):
     dataset = tf.data.TFRecordDataset(tfrecordPath)
-    
+
     return dataset.map(parseSingleTFRecord)
 
 def train(dataset, epochs=10, batchSize=32):
     dataset = dataset.batch(batchSize)
     
     model = initModel()
-
+    
     for image, bbox, labels in dataset:
         model.fit(image, tf.argmax(labels, axis=1), epochs=epochs, batch_size=batchSize)
 
