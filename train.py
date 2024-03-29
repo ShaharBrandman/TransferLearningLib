@@ -36,7 +36,7 @@ def getDataset(tfrecordPath):
 
 def train(dataset, epochs=10, batchSize=32):
     dataset = dataset.batch(batchSize)
-
+    
     model = initModel()
 
     for image, bbox, labels in dataset:

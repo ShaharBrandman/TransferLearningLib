@@ -37,8 +37,8 @@ def preproccess(path: str, resolution: tuple = None) -> tf.Tensor:
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return tf.convert_to_tensor(np.expand_dims(image, 0), dtype=tf.uint8)
 
-def saveAsCOCOXML(boxes, classes, scores, imageShape, fileDetails: tuple) -> None:
-    global category_index
+def saveAsCOCOXML(boxes, desiredLabel, scores, imageShape, fileDetails: tuple) -> None:
+    #global category_index
     
     originalImagePath, outputPath = fileDetails
 
@@ -61,7 +61,7 @@ def saveAsCOCOXML(boxes, classes, scores, imageShape, fileDetails: tuple) -> Non
     height.text = str(imageShape[2])
     depth.text = str(imageShape[0])
 
-    for box, class_id, score in zip(boxes, classes, scores):
+    for box, score in zip(boxes, scores):
         ymin, xmin, ymax, xmax = box
         if (ymin and xmin and ymax and xmax) == 0:
             continue
@@ -72,7 +72,9 @@ def saveAsCOCOXML(boxes, classes, scores, imageShape, fileDetails: tuple) -> Non
         #     name.text = category_index[class_id]['name']
         # else:
         #     name.text = str(class_id)
-        name.text = category_index[class_id]['name']
+        
+        #name.text = category_index[class_id]['name']
+        name.text = desiredLabel
 
         pose = ET.SubElement(object_elem, "pose")
         pose.text = "Unspecified"
@@ -94,12 +96,13 @@ def saveAsCOCOXML(boxes, classes, scores, imageShape, fileDetails: tuple) -> Non
         ymax_elem.text = str(float(ymax))
 
     tree = ET.ElementTree(root)
-
+    
     tree.write(outputPath)
 
 def predictFile(
     imagePath: str,
     annotationsPath: str,
+    desiredLabel: str,
     expectedType: str = None,
     resolution: tuple = None
 ) -> None:
@@ -122,8 +125,8 @@ def predictFile(
 
     boxes = detections['detection_boxes'][0].numpy()
     scores = detections['detection_scores'][0].numpy()
-
-    saveAsCOCOXML(boxes, classes, scores, image.shape, (imagePath, annotationsPath))
+    
+    saveAsCOCOXML(boxes, desiredLabel, scores, image.shape, (imagePath, annotationsPath))
 
 def predictDirectory(
     folderPath: str,
@@ -143,10 +146,12 @@ def predictDirectory(
     for dir in os.listdir(folderPath):
         for img in os.listdir(f'{folderPath}{dir}'):
             expectedType = dir.split('-')[0]
+            desiredLabel = dir.split('-')[1]
             
             predictFile(
                 f'{folderPath}{dir}/{img}', #the image in the folder to inference
                 f'{annotationsPath}{dir}/{img.replace(datasetImageType, ".xml")}',
+                desiredLabel,
                 expectedType,
                 resolution
             )

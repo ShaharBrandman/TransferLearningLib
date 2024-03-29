@@ -1,4 +1,5 @@
 import os
+import argparse
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras import layers, models
@@ -30,8 +31,6 @@ def exportModel(preTrainedModelPath: str = None, datasetPath: str = 'data/images
     x = base_model.output
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dense(256, activation='relu')(x)
-
-    #num_classes = findNumberOfClasses(datasetPath)
 
     output_class = layers.Dense(
         findNumberOfClasses(datasetPath),

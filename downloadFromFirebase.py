@@ -51,8 +51,7 @@ def argsMain() -> None:
     parser.add_argument(
         '--dirPath',
         type=str,
-        help='Path to the trainingData directory',
-        required=True
+        help='Path to the trainingData directory'
     )
 
     args = parser.parse_args()
@@ -60,4 +59,5 @@ def argsMain() -> None:
     downloadAllFrom(args.dbURL, args.dirPath)
 
 if __name__ == '__main__':
-    argsMain()
+    #argsMain()
+    main()

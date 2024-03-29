@@ -29,7 +29,6 @@ def createTFExample(xmlPath, imagePath, labelMapDict) -> tf.train.Example:
 
     filename = os.path.basename(imagePath).encode('utf8')
     
-    
     #assign an image format, feel free to change it to whatever you wish
     image_format = b'jpeg'
 
@@ -77,8 +76,8 @@ def xml_to_tfrecord(xmlDir, imageDir, recordPath, labelMapPath):
                 xmlPath = os.path.join(xmlDir, xmlFolder, xmlFile)
                 image_file = os.path.join(imageDir, xmlFile.replace('.xml', ''))
 
-                labelMapDict.update(extractLabelMap(xmlPath, usedIds))
-
+                updateLabelMap(labelMapDict, xmlPath, usedIds)
+                
     with open(os.path.join(labelMapPath, 'train_label_map.pbtxt'), 'w', encoding='utf-8') as f:
         for idx, (className, classId) in enumerate(sorted(labelMapDict.items())):
             f.write('item {\n')
@@ -98,16 +97,14 @@ def xml_to_tfrecord(xmlDir, imageDir, recordPath, labelMapPath):
                     imagePath = os.path.join(os.path.join(imageDir, xmlFolder), xmlFile.replace('.xml', '.jpeg'))
                     
                     tf_example = createTFExample(xmlPath, imagePath, labelMapDict)
-
+                    
                     f.write(tf_example.SerializeToString())
         f.close()
 
     print(f'TFRecord written to: {record}')
     print(f'Label map written to: {os.path.join(labelMapPath, "label_map.pbtxt")}')
 
-def extractLabelMap(xmlPath, usedIds):
-    labelMap = {}
-    
+def updateLabelMap(labelMapDict, xmlPath, usedIds):
     #read xml file contents
     with tf.io.gfile.GFile(xmlPath, 'r') as fid:
         xmlContent = fid.read()
@@ -118,12 +115,10 @@ def extractLabelMap(xmlPath, usedIds):
     for obj in xml.findall('object'):
         #extract the object name
         name = obj.find('name').text
-        if name not in labelMap:
+        if name not in labelMapDict:
             labelId = findUniqueID(usedIds)
-            labelMap[name.replace("'", '')] = labelId
+            labelMapDict[name.replace("'", '')] = labelId
             usedIds.add(labelId)
-
-    return labelMap
 
 def findUniqueID(usedIds):
     id = 1
