@@ -4,3 +4,6 @@ ssd_mobilenet_v2_coco_2018_03_29
 serviceAccountKey.json
 data/images/*
 data/annotations/*
+CustomMobileNetV2
+train.tfrecord
+train_label_map.pbtxt

@@ -35,7 +35,7 @@ def parseSingleTFRecord(record):
 
 def getDataset(tfrecordPath):
     dataset = tf.data.TFRecordDataset(tfrecordPath)
-
+    
     return dataset.map(parseSingleTFRecord)
 
 def train(dataset, epochs=10, batchSize=32):
