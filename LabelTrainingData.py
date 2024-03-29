@@ -200,8 +200,6 @@ def argsMain() -> None:
         help='desired dataset Resolutions'
     )
 
-    parser.add_argument
-
     args = parser.parse_args()
 
     predictDirectory(
@@ -217,4 +215,5 @@ def main() -> None:
     predictDirectory('data/images/', 'data/default_mobilnetv2_labels.pbtxt', 'data/annotations/')
 
 if __name__ == '__main__':
-    argsMain()
+    main()
+    #argsMain()

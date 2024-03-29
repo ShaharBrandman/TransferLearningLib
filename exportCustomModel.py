@@ -3,11 +3,26 @@ import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras import layers, models
 
-def findNumberOfClasses() -> int:
-    pass
+#find the number of classes of the training dataset
+def findNumberOfClasses(datasetPath) -> int:
+    dataset = os.listdir(datasetPath)
+    
+    foundClasses = []
 
-def main() -> None:
-    base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    for d in dataset:
+        d = d.split('-')
+        if d[0]:
+            if d[0] not in foundClasses:
+                foundClasses.append(d[0])
+
+    return len(foundClasses)
+
+def exportModel(preTrainedModelPath: str = None, datasetPath: str = 'data/images') -> None:
+
+    if preTrainedModelPath:
+        base_model = tf.saved_model.load(preTrainedModelPath)
+    else:
+        base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
     for layer in base_model.layers:
         layer.trainable = False
@@ -16,9 +31,13 @@ def main() -> None:
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dense(256, activation='relu')(x)
 
-    num_classes = findNumberOfClasses()
+    #num_classes = findNumberOfClasses(datasetPath)
 
-    output_class = layers.Dense(num_classes, activation='softmax', name='output_class')(x)
+    output_class = layers.Dense(
+        findNumberOfClasses(datasetPath),
+        activation='softmax',
+        name='output_class'
+    )(x)
 
     output_bbox = layers.Dense(4, name='output_bbox')(x)
 
@@ -32,5 +51,30 @@ def main() -> None:
 
     model.save('CustomMobileNetV2')
 
+def argsMain() -> None:
+    parser = argparse.ArgumentParser(description='Export a custom object recognition model for localization and classification')
+    
+    parser.add_argument(
+        '--preTrainedModel',
+        type=str,
+        help='Path to the pre trained model file'
+    )
+
+    parser.add_argument(
+        '--datasetPath',
+        type=str,
+        help='Path to the dataset folder'
+    )
+
+    args = parser.parse_args()
+
+    exportModel(
+        args.preTrainedModel,
+        args.datasetPath
+    )
+
+def main() -> None:
+    exportModel()
+
 if __name__ == '__main__':
-    main()
+    argsMain()
