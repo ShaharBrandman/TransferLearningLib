@@ -1,5 +1,6 @@
 '''
 downloadFromFirebase.py
+© Author: ShaharBrandman (2024)
 
 a simple script to download the training dataset from firebase storage
 '''

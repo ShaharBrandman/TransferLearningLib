@@ -1,3 +1,7 @@
+'''
+exportCustomModel.py
+© Author: ShaharBrandman (2024)
+'''
 import os
 import argparse
 import tensorflow as tf

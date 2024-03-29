@@ -1,3 +1,10 @@
+'''
+createTFRecord.py
+© Author: ShaharBrandman (2024)
+
+A script that converts COCO XML datasets into
+a label map .pbtxt file and tf record
+'''
 import os
 import argparse
 import io
@@ -41,11 +48,11 @@ def createTFExample(xmlPath, imagePath, labelMapDict) -> tf.train.Example:
         xmax = float(obj.find('bndbox/xmax').text)
         ymax = float(obj.find('bndbox/ymax').text)
 
-        xmins.append(max(0, xmin / float(width)))
-        xmaxs.append(min(1, xmax / float(width)))
-        ymins.append(max(0, ymin / float(height)))
-        ymaxs.append(min(1, ymax / float(height)))
-
+        xmins.append(xmin)
+        xmaxs.append(xmax)
+        ymins.append(ymin)
+        ymaxs.append(ymax)
+        
         className = obj.find('name').text.replace("'", '')
         classesText.append(className.encode('utf8'))
         classes.append(labelMapDict[className])

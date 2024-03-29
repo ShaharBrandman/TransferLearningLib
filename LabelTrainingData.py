@@ -15,8 +15,10 @@ import cv2
 import tensorflow as tf
 from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util
 
+from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import xml.etree.ElementTree as ET
 
 model = None
@@ -32,7 +34,7 @@ def preproccess(path: str, resolution: tuple = None) -> tf.Tensor:
     image = cv2.imread(path)
 
     if resolution:
-        image = cv2.resize((224, 224))
+        image = cv2.resize(image, (224, 224))
     
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return tf.convert_to_tensor(np.expand_dims(image, 0), dtype=tf.uint8)
@@ -85,15 +87,24 @@ def saveAsCOCOXML(boxes, desiredLabel, scores, imageShape, fileDetails: tuple) -
         difficult = ET.SubElement(object_elem, "difficult")
         difficult.text = "0"
 
+        # bndbox = ET.SubElement(object_elem, "bndbox")
+        # xmin_elem = ET.SubElement(bndbox, "xmin")
+        # xmin_elem.text = str(float(xmin))
+        # ymin_elem = ET.SubElement(bndbox, "ymin")
+        # ymin_elem.text = str(float(ymin))
+        # xmax_elem = ET.SubElement(bndbox, "xmax")
+        # xmax_elem.text = str(float(xmax))
+        # ymax_elem = ET.SubElement(bndbox, "ymax")
+        # ymax_elem.text = str(float(ymax))
         bndbox = ET.SubElement(object_elem, "bndbox")
         xmin_elem = ET.SubElement(bndbox, "xmin")
-        xmin_elem.text = str(float(xmin))
+        xmin_elem.text = str(int(xmin * imageShape[1]))  # Scale box to image size
         ymin_elem = ET.SubElement(bndbox, "ymin")
-        ymin_elem.text = str(float(ymin))
+        ymin_elem.text = str(int(ymin * imageShape[0]))
         xmax_elem = ET.SubElement(bndbox, "xmax")
-        xmax_elem.text = str(float(xmax))
+        xmax_elem.text = str(int(xmax * imageShape[1]))
         ymax_elem = ET.SubElement(bndbox, "ymax")
-        ymax_elem.text = str(float(ymax))
+        ymax_elem.text = str(int(ymax * imageShape[0]))
 
     tree = ET.ElementTree(root)
     
@@ -126,7 +137,16 @@ def predictFile(
     boxes = detections['detection_boxes'][0].numpy()
     scores = detections['detection_scores'][0].numpy()
     
-    saveAsCOCOXML(boxes, desiredLabel, scores, image.shape, (imagePath, annotationsPath))
+    saveAsCOCOXML(
+        boxes,
+        desiredLabel,
+        scores,
+        cv2.imread(imagePath).shape,
+        (
+            imagePath,
+            annotationsPath
+        )
+    )
 
 def predictDirectory(
     folderPath: str,

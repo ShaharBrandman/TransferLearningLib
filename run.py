@@ -1,7 +1,6 @@
 '''
 run.py
-Author: Shahar Brandman(2024)
-
+© Author: ShaharBrandman (2024)
 '''
 import downloadFromFirebase as dff
 import LabelTrainingData as ltd

@@ -1,3 +1,7 @@
+'''
+train.py
+© Author: ShaharBrandman (2024)
+'''
 import tensorflow as tf
 import argparse
 import matplotlib.pyplot as plt
