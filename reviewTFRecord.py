@@ -34,6 +34,8 @@ for image_features in parsed_image_dataset:
     ymin = tf.sparse.to_dense(image_features['image/object/bbox/ymin']).numpy()
     ymax = tf.sparse.to_dense(image_features['image/object/bbox/ymax']).numpy()
     
+    print(tf.sparse.to_dense(image_features['image/object/class/label']))
+
     # Plot bounding boxes
     for i in range(len(xmin)):
         print('bounding boxes: ', xmin[i], xmax[i], ymin[i],ymax[i])
