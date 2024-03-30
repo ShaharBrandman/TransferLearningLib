@@ -24,7 +24,7 @@ def draw_bounding_boxes(image_path, annotations):
             width = float(annotation['xmax']) - xmin
             height = float(annotation['ymax']) - ymin
             
-            print(xmin, ymin, width, height)
+            print('bounding boxes', xmin, ymin, width, height)
 
             rect = patches.Rectangle((xmin, ymin), width, height, linewidth=5, edgecolor='r', facecolor='none')
 
@@ -53,9 +53,9 @@ def parse_xml(annotation_path):
 
 def main(annotations_dir='data/annotations', images_dir='data/images'):
     for category in os.listdir(annotations_dir):
-        print(category)
+        print('current class: ', category)
         for annotation_file in os.listdir(f'{annotations_dir}/{category}'):
-            print(annotation_file)
+            print('current coco xml file: ', annotation_file)
             if annotation_file.endswith('.xml'):
                 annotations = parse_xml(f'{annotations_dir}/{category}/{annotation_file}')
                 
