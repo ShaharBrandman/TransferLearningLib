@@ -57,6 +57,12 @@ def createTFExample(xmlPath, imagePath, labelMapDict) -> tf.train.Example:
         classesText.append(className.encode('utf8'))
         classes.append(labelMapDict[className])
 
+    # Convert bounding box tensors to strings
+    xmins_str = [str(xmin).encode() for xmin in xmins]
+    xmaxs_str = [str(xmax).encode() for xmax in xmaxs]
+    ymins_str = [str(ymin).encode() for ymin in ymins]
+    ymaxs_str = [str(ymax).encode() for ymax in ymaxs]
+
     return tf.train.Example(features=tf.train.Features(feature={
         'image/height': dataset_util.int64_feature(height),
         'image/width': dataset_util.int64_feature(width),
@@ -77,18 +83,22 @@ def xml_to_tfrecord(xmlDir, imageDir, recordPath, labelMapPath):
     labelMapDict = {}
     usedIds = set()
 
+    #extract all labels from all of the coco xml files
     for xmlFolder in os.listdir(xmlDir):
         for xmlFile in os.listdir(os.path.join(xmlDir, xmlFolder)):
             if xmlFile.endswith('.xml'):
+                #define xml file path
                 xmlPath = os.path.join(xmlDir, xmlFolder, xmlFile)
+                #define corresponding image file path
                 image_file = os.path.join(imageDir, xmlFile.replace('.xml', ''))
 
+                #extract features and update label map
                 updateLabelMap(labelMapDict, xmlPath, usedIds)
                 
     with open(os.path.join(labelMapPath, 'train_label_map.pbtxt'), 'w', encoding='utf-8') as f:
         for idx, (className, classId) in enumerate(sorted(labelMapDict.items())):
             f.write('item {\n')
-            f.write(f'  id: {idx + 1}\n')
+            f.write(f'  id: {classId}\n')
             f.write(f'  name: \'{className}\'\n')
             f.write('}\n')
 
@@ -122,6 +132,7 @@ def updateLabelMap(labelMapDict, xmlPath, usedIds):
     for obj in xml.findall('object'):
         #extract the object name
         name = obj.find('name').text
+
         if name not in labelMapDict:
             labelId = findUniqueID(usedIds)
             labelMapDict[name.replace("'", '')] = labelId

@@ -5,6 +5,7 @@ raw_image_dataset = tf.data.TFRecordDataset('data/train.tfrecord')
 
 image_feature_description = {
     'image/encoded': tf.io.FixedLenFeature([], tf.string),
+    'image/object/class/text': tf.io.VarLenFeature(tf.string),
     'image/object/class/label': tf.io.VarLenFeature(tf.int64),
     'image/object/bbox/xmin': tf.io.VarLenFeature(tf.float32),
     'image/object/bbox/xmax': tf.io.VarLenFeature(tf.float32),
@@ -34,11 +35,16 @@ for image_features in parsed_image_dataset:
     ymin = tf.sparse.to_dense(image_features['image/object/bbox/ymin']).numpy()
     ymax = tf.sparse.to_dense(image_features['image/object/bbox/ymax']).numpy()
     
-    print(tf.sparse.to_dense(image_features['image/object/class/label']))
+    labels = tf.sparse.to_dense(image_features['image/object/class/label']).numpy()
+    classNames = tf.sparse.to_dense(image_features['image/object/class/text']).numpy()
+
+    print(f'labels: {labels}, className: {classNames}')
+    print(f'labels shape: {labels.shape}, className shape: {classNames.shape}')
+    print(f'xmin shape {xmin.shape}, xmax: {xmax.shape}, ymin: {ymin.shape}, ymax: {ymax.shape}')
 
     # Plot bounding boxes
     for i in range(len(xmin)):
-        print('bounding boxes: ', xmin[i], xmax[i], ymin[i],ymax[i])
+        print('bounding boxes: ', xmin[i], xmax[i], ymin[i],ymax[i], ' for ', classNames[i])
         plt.plot([xmin[i], xmax[i], xmax[i], xmin[i], xmin[i]],
                  [ymin[i], ymin[i], ymax[i], ymax[i], ymin[i]], 'r-')
     

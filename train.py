@@ -54,8 +54,6 @@ def train(dataset, epochs=50, batchSize=1):
     for image, bbox, labels in dataset:
         if image.shape[0] == 0:
             continue
-        print("Image shape:", image.shape)
-        print("Labels shape:", labels.shape)
         model.fit(image, labels, epochs=epochs, batch_size=batchSize)
 
 def argsMain() -> None:

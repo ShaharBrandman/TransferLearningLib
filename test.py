@@ -36,6 +36,8 @@ def inference(imagePath, labelMap):
     img = img / 255.0
 
     classes, bbox = model.predict(tf.expand_dims(img, axis=0))
+    
+    print(classes, bbox)
 
     classId = tf.argmax(classes, axis=1).numpy()[0]
     label = labelMap[classId]
