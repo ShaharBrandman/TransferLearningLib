@@ -28,8 +28,9 @@ def parseSingleTFRecord(record):
     image = tf.cast(image, tf.float32) / 255.0
 
     num_classes = findNumberOfClasses('data/images')
-    labels = tf.one_hot(tf.sparse.to_dense(record['image/object/class/label']), depth=num_classes)
-    labels = tf.reshape(labels, (-1, num_classes))  # Reshape to (batch_size, num_classes)
+    labels = tf.sparse.to_dense(record['image/object/class/label'])
+    #labels = tf.one_hot(tf.sparse.to_dense(record['image/object/class/label']), depth=num_classes)
+    #labels = tf.reshape(labels, (-1, num_classes))  # Reshape to (batch_size, num_classes)
     
     return image, (
         tf.sparse.to_dense(record['image/object/bbox/xmin']),
@@ -43,7 +44,7 @@ def getDataset(tfrecordPath):
 
     return dataset.map(parseSingleTFRecord)
 
-def train(dataset, epochs=50, batchSize=1):
+def train(dataset, epochs=1500, batchSize=1):
     dataset = dataset.batch(batchSize)
     
     model = initModel()
@@ -52,9 +53,19 @@ def train(dataset, epochs=50, batchSize=1):
         return print("Dataset is empty")
 
     for image, bbox, labels in dataset:
-        if image.shape[0] == 0:
+        if image.shape[0] == 0 or labels.shape[1] == 0:
             continue
-        model.fit(image, labels, epochs=epochs, batch_size=batchSize)
+        
+        bbox_labels = tf.stack(bbox, axis=-1)
+
+        print(image.shape, labels.shape, bbox_labels.shape)
+
+        targets = {
+            "output_class": labels,
+            "output_bbox": bbox_labels,
+        }
+
+        model.fit(image, targets, epochs=epochs, batch_size=batchSize)
 
 def argsMain() -> None:
     parser = argparse.ArgumentParser(description='transfer learn a custom object recognition model for localization and classification')

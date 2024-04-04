@@ -3,10 +3,9 @@ import matplotlib.pyplot as plt
 import os
 from exportCustomModel import exportModel
 
-# Load your custom model
-custom_model_path = 'CustomMobileNetV2' 
-def initModel(custom_model_path) -> None:
-    return  tf.keras.models.load_model(custom_model_path)
+def initModel() -> None:
+    return  tf.keras.models.load_model('CustomMobileNetV2')
+
 def parse_tfrecord_fn(example):
     feature_description = {
         'image/encoded': tf.io.FixedLenFeature([], tf.string),
@@ -39,9 +38,9 @@ def parse_tfrecord_fn(example):
     return image, {'output_class': label, 'output_bbox': bbox}
 
 # Define training parameters
-batch_size = 32
+batch_size = 1
 num_epochs = 10
-num_classes = 2  # Number of classes in your dataset
+num_classes = 1  # Number of classes in your dataset
 
 # Load TFRecord files
 train_files = tf.io.gfile.glob('train.tfrecord')
@@ -54,5 +53,5 @@ train_dataset = train_dataset.map(parse_tfrecord_fn)
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 # Train the model
-model = initModel(custom_model_path)
+model = initModel()
 model.fit(train_dataset, epochs=num_epochs)
