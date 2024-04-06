@@ -124,6 +124,7 @@ def predictFile(
 
     classes = detections['detection_classes'][0].numpy().astype(np.uint8)
 
+    #filter unwanted labels
     classes = [key for key, value in category_index.items() if value['name'] == expectedType]
     
     #make sure to only allow expected types only
