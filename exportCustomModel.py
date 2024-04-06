@@ -19,10 +19,9 @@ def findNumberOfClasses(datasetPath) -> int:
         if d[1]:
             if d[1] not in foundClasses:
                 foundClasses.append(d[1])
-
     return len(foundClasses)
 
-def exportModel(preTrainedModelPath: str = None, datasetPath: str = 'data/images') -> None:
+def exportModel(preTrainedModelPath: str = None, datasetPath: str = 'data/annotations/') -> None:
 
     if preTrainedModelPath:
         base_model = tf.saved_model.load(preTrainedModelPath)

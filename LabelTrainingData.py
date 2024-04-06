@@ -106,6 +106,17 @@ def saveAsCOCOXML(boxes, desiredLabel, scores, imageShape, fileDetails: tuple) -
     
     tree.write(outputPath)
 
+def filterUnwantedLabels(classes: list, expectedType: str) -> list:
+    global category_index
+    
+    t = []
+    for classId in classes:
+        if classId <= len(category_index):
+            if category_index[classId]['name'] == expectedType:
+                t.append(classId)
+    
+    return t
+
 def predictFile(
     imagePath: str,
     annotationsPath: str,
@@ -125,8 +136,8 @@ def predictFile(
     classes = detections['detection_classes'][0].numpy().astype(np.uint8)
 
     #filter unwanted labels
-    classes = [key for key, value in category_index.items() if value['name'] == expectedType]
-    
+    classes = filterUnwantedLabels(classes, expectedType)
+
     #make sure to only allow expected types only
     if len(classes) <= 0:
         return
@@ -159,6 +170,8 @@ def predictDirectory(
     model = initModel(modelPath)
 
     category_index = label_map_util.create_category_index_from_labelmap(labelMapPath, use_display_name=True)
+    
+    os.makedirs(annotationsPath, exist_ok=True)
 
     for dir in os.listdir(folderPath):
         for img in os.listdir(f'{folderPath}{dir}'):

@@ -3,6 +3,7 @@ train.py
 © Author: ShaharBrandman (2024)
 '''
 import os
+import numpy as np
 import tensorflow as tf
 import argparse
 
@@ -28,8 +29,8 @@ def parseSingleTFRecord(record):
     image = tf.image.resize(image, (224, 224))
     image = tf.cast(image, tf.float32) / 255.0
 
-    num_classes = findNumberOfClasses('data/images')
     labels = tf.sparse.to_dense(record['image/object/class/label'])
+    #num_classes = findNumberOfClasses('data/annotations/')
     #labels = tf.one_hot(tf.sparse.to_dense(record['image/object/class/label']), depth=num_classes)
     #labels = tf.reshape(labels, (-1, num_classes))  # Reshape to (batch_size, num_classes)
     
@@ -45,7 +46,7 @@ def getDataset(tfrecordPath):
 
     return dataset.map(parseSingleTFRecord)
 
-def train(dataset, epochs=30, batchSize=1):
+def train(dataset, epochs=50, batchSize=1):
     dataset = dataset.batch(batchSize)
     
     model = initModel()
@@ -67,6 +68,9 @@ def train(dataset, epochs=30, batchSize=1):
             model.save(f'CustomMobileNetV2/checkpoint/checkpoint-{i}.h5')
 
         bbox_labels = tf.stack(bbox, axis=-1)
+
+        if labels.shape[1] < 4:
+            labels = np.resize(labels, (1, findNumberOfClasses('data/annotations/')))
 
         print(image.shape, labels.shape, bbox_labels.shape)
 
