@@ -37,9 +37,17 @@ def exportModel(preTrainedModelPath: str = None, datasetPath: str = 'data/images
     which takes the output of the original architecure as input
     and use GlobalAveragePooling2D algorithm for fine tuning in our new model
     '''
-    x = base_model.output                       #new model input
-    x = layers.GlobalAveragePooling2D()(x)      #Fine tuning using GlobalAveragePooling2D
-    x = layers.Dense(256, activation='relu')(x) #Hidden layer
+    # x = base_model.output                       #new model input
+    # x = layers.GlobalAveragePooling2D()(x)      #Fine tuning using GlobalAveragePooling2D
+    # x = layers.Dense(256, activation='relu')(x) #Hidden layer
+
+    x = base_model.output 
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(256)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.LeakyReLU(alpha=0.1)(x)
+    x = layers.Dropout(0.5)(x)
+
 
     output_class = layers.Dense(
         findNumberOfClasses(datasetPath),

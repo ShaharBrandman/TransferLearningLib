@@ -1,12 +1,8 @@
-'''
-test.py
-© Author: ShaharBrandman (2024)
-'''
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
 def initModel():
-    return tf.keras.models.load_model('CustomMobileNetV2')
+    return tf.keras.models.load_model('CustomMobileNetV2/trainedModel.h5')
 
 def loadLabelMap(labelMapPath):
     t = {}
@@ -32,10 +28,11 @@ def inference(imagePath, labelMap):
     img = plt.imread(imagePath)
     original_shape = img.shape[:2]
 
-    img = tf.image.resize(img, (224, 224))
-    img = img / 255.0
+    img_resized = tf.image.resize(img, (224, 224))
+    img_resized = tf.expand_dims(img_resized, axis=0)  # Add batch dimension
+    img_resized = img_resized / 255.0
 
-    classes, bbox = model.predict(tf.expand_dims(img, axis=0))
+    classes, bbox = model.predict(img_resized)
     
     print(classes, bbox)
 
@@ -45,19 +42,20 @@ def inference(imagePath, labelMap):
     xmin, xmax, ymin, ymax = bbox[0]
 
     # Scaling bounding box back to original image size
-    xmin = int(xmin * original_shape[1])
-    xmax = int(xmax * original_shape[1])
-    ymin = int(ymin * original_shape[0])
-    ymax = int(ymax * original_shape[0])
+    xmin = int(xmin * original_shape[1] / 224)
+    xmax = int(xmax * original_shape[1] / 224)
+    ymin = int(ymin * original_shape[0] / 224)
+    ymax = int(ymax * original_shape[0] / 224)
 
     print(f'predicted label: {label}')
     print(f'predicted boxes: {xmin, xmax, ymin, ymax}')
 
     visPrediction(imagePath, label, (xmin, xmax, ymin, ymax))
 
+
 def main() -> None:
     labelMap = loadLabelMap('data/train_label_map.pbtxt')
-    inference('data/images/person-shahar/16.jpeg', labelMap)
+    inference('data/images/person-shahar&shalti/1.jpeg', labelMap)
 
 if __name__ == '__main__':
     main()

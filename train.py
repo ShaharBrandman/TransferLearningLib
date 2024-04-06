@@ -2,6 +2,7 @@
 train.py
 © Author: ShaharBrandman (2024)
 '''
+import os
 import tensorflow as tf
 import argparse
 
@@ -44,7 +45,7 @@ def getDataset(tfrecordPath):
 
     return dataset.map(parseSingleTFRecord)
 
-def train(dataset, epochs=1500, batchSize=1):
+def train(dataset, epochs=30, batchSize=1):
     dataset = dataset.batch(batchSize)
     
     model = initModel()
@@ -52,10 +53,19 @@ def train(dataset, epochs=1500, batchSize=1):
     if dataset is None:
         return print("Dataset is empty")
 
+    i = 0
+
+    os.makedirs('CustomMobileNetV2/checkpoint', exist_ok=True)
+
     for image, bbox, labels in dataset:
         if image.shape[0] == 0 or labels.shape[1] == 0:
             continue
         
+        i+=1
+
+        if i % 10 == 0:
+            model.save(f'CustomMobileNetV2/checkpoint/checkpoint-{i}.h5')
+
         bbox_labels = tf.stack(bbox, axis=-1)
 
         print(image.shape, labels.shape, bbox_labels.shape)
@@ -66,6 +76,8 @@ def train(dataset, epochs=1500, batchSize=1):
         }
 
         model.fit(image, targets, epochs=epochs, batch_size=batchSize)
+
+    model.save(f'CustomMobileNetV2/trainedModel.h5')
 
 def argsMain() -> None:
     parser = argparse.ArgumentParser(description='transfer learn a custom object recognition model for localization and classification')
