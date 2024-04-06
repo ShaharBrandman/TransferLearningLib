@@ -37,11 +37,10 @@ def preproccess(path: str, resolution: tuple = None) -> tf.Tensor:
         image = cv2.resize(image, (224, 224))
     
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
     return tf.convert_to_tensor(np.expand_dims(image, 0), dtype=tf.uint8)
 
 def saveAsCOCOXML(boxes, desiredLabel, scores, imageShape, fileDetails: tuple) -> None:
-    #global category_index
-    
     originalImagePath, outputPath = fileDetails
 
     outputDir = outputPath.split('/')
@@ -65,17 +64,14 @@ def saveAsCOCOXML(boxes, desiredLabel, scores, imageShape, fileDetails: tuple) -
 
     for box, score in zip(boxes, scores):
         ymin, xmin, ymax, xmax = box
+        
+        #skip empty predictions
         if (ymin and xmin and ymax and xmax) == 0:
             continue
+        
         object_elem = ET.SubElement(root, "object")
         name = ET.SubElement(object_elem, "name")
         
-        # if category_index[class_id]:
-        #     name.text = category_index[class_id]['name']
-        # else:
-        #     name.text = str(class_id)
-        
-        #name.text = category_index[class_id]['name']
         name.text = desiredLabel
 
         pose = ET.SubElement(object_elem, "pose")
