@@ -37,7 +37,11 @@ def inference(imagePath, labelMap):
     print(classes, bbox)
 
     classId = tf.argmax(classes, axis=1).numpy()[0]
-    label = labelMap[classId]
+
+    if classId != 0:
+        label = labelMap[classId]
+    else:
+        label = 'Unknown'
 
     xmin, xmax, ymin, ymax = bbox[0]
 
@@ -55,7 +59,7 @@ def inference(imagePath, labelMap):
 
 def main() -> None:
     labelMap = loadLabelMap('data/train_label_map.pbtxt')
-    inference('data/images/person-shahar&shalti/1.jpeg', labelMap)
+    inference('data/images/bicycle-ManyBikes/200.jpeg', labelMap)
 
 if __name__ == '__main__':
     main()

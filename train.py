@@ -7,6 +7,8 @@ import numpy as np
 import tensorflow as tf
 import argparse
 
+from tensorflow.keras.callbacks import EarlyStopping
+
 from exportCustomModel import findNumberOfClasses
 
 def initModel():
@@ -30,57 +32,50 @@ def parseSingleTFRecord(record):
     image = tf.cast(image, tf.float32) / 255.0
 
     labels = tf.sparse.to_dense(record['image/object/class/label'])
-    #num_classes = findNumberOfClasses('data/annotations/')
-    #labels = tf.one_hot(tf.sparse.to_dense(record['image/object/class/label']), depth=num_classes)
-    #labels = tf.reshape(labels, (-1, num_classes))  # Reshape to (batch_size, num_classes)
+    bbox_xmin = tf.sparse.to_dense(record['image/object/bbox/xmin'])
+    bbox_xmax = tf.sparse.to_dense(record['image/object/bbox/xmax'])
+    bbox_ymin = tf.sparse.to_dense(record['image/object/bbox/ymin'])
+    bbox_ymax = tf.sparse.to_dense(record['image/object/bbox/ymax'])
     
-    return image, (
-        tf.sparse.to_dense(record['image/object/bbox/xmin']),
-        tf.sparse.to_dense(record['image/object/bbox/xmax']),
-        tf.sparse.to_dense(record['image/object/bbox/ymin']),
-        tf.sparse.to_dense(record['image/object/bbox/ymax'])
-    ), labels
+    bbox = tf.stack([bbox_xmin, bbox_xmax, bbox_ymin, bbox_ymax], axis=1)
+
+    return image, bbox, labels
 
 def getDataset(tfrecordPath):
     dataset = tf.data.TFRecordDataset(tfrecordPath)
 
     return dataset.map(parseSingleTFRecord)
 
-def train(dataset, epochs=50, batchSize=1):
+def train(dataset, epochs=100, batchSize=1):
     dataset = dataset.batch(batchSize)
+    
+    es = EarlyStopping(patience=1, monitor='val_loss')
     
     model = initModel()
 
     if dataset is None:
         return print("Dataset is empty")
 
-    i = 0
-
     os.makedirs('CustomMobileNetV2/checkpoint', exist_ok=True)
 
+    num_classes = findNumberOfClasses('data/annotations/') # Debug: Print the number of classes
+    print("Number of classes:", num_classes)
+
+    images_list = []
+    output_class_list = []
+    output_bbox_list = []
+
     for image, bbox, labels in dataset:
-        if image.shape[0] == 0 or labels.shape[1] == 0:
-            continue
-        
-        i+=1
+        bbox = np.reshape(bbox, (-1, 4))
+        #labels = np.reshape(labels, (-1, num_classes))
 
-        if i % 10 == 0:
-            model.save(f'CustomMobileNetV2/checkpoint/checkpoint-{i}.h5')
+        print(f'image shape: {image.shape}')
 
-        bbox_labels = tf.stack(bbox, axis=-1)
+        # Assuming labels are already one-hot encoded
+        print(f'bbox shape: {bbox.shape}')
+        print(f'label shape: {labels.shape}')
 
-        if labels.shape[1] < 4:
-            labels = np.resize(labels, (1, findNumberOfClasses('data/annotations/')))
-
-        print(image.shape, labels.shape, bbox_labels.shape)
-
-        targets = {
-            "output_class": labels,
-            "output_bbox": bbox_labels,
-        }
-
-        model.fit(image, targets, epochs=epochs, batch_size=batchSize)
-
+        model.fit(image, {"output_bbox": bbox, "output_class": labels}, epochs=epochs, callbacks=[es])
     model.save(f'CustomMobileNetV2/trainedModel.h5')
 
 def argsMain() -> None:

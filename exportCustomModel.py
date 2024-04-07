@@ -5,8 +5,14 @@ exportCustomModel.py
 import os
 import argparse
 import tensorflow as tf
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras import layers, models
+from tensorflow.keras.applications import EfficientNetV2S
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Model, Sequential
+
+from tensorflow.keras.losses import MeanSquaredError, CategoricalCrossentropy
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.metrics import CategoricalAccuracy, MeanAbsoluteError
+
 
 #find the number of classes of the training dataset
 def findNumberOfClasses(datasetPath) -> int:
@@ -21,61 +27,58 @@ def findNumberOfClasses(datasetPath) -> int:
                 foundClasses.append(d[1])
     return len(foundClasses)
 
-def exportModel(preTrainedModelPath: str = None, datasetPath: str = 'data/annotations/') -> None:
+def exportModel(datasetPath: str = 'data/annotations/') -> None:
 
-    if preTrainedModelPath:
-        base_model = tf.saved_model.load(preTrainedModelPath)
-    else:
-        base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    base_model = EfficientNetV2S(weights = 'imagenet', include_top=False, input_shape=(224, 224, 3))
 
     for layer in base_model.layers:
         layer.trainable = False
 
-    '''
-    X which stands for our extension of the base_model neural network
-    which takes the output of the original architecure as input
-    and use GlobalAveragePooling2D algorithm for fine tuning in our new model
-    '''
-    # x = base_model.output                       #new model input
-    # x = layers.GlobalAveragePooling2D()(x)      #Fine tuning using GlobalAveragePooling2D
-    # x = layers.Dense(256, activation='relu')(x) #Hidden layer
+    
+    base_model = Sequential([base_model,
+                       GlobalAveragePooling2D(),
+                       Dense(64, activation='relu')])
 
-    x = base_model.output 
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(256)(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.LeakyReLU(alpha=0.1)(x)
-    x = layers.Dropout(0.5)(x)
+    output_class = Dense(
+        128,
+        activation='relu'
+    )(base_model.output)
 
-
-    output_class = layers.Dense(
-        findNumberOfClasses(datasetPath),
-        activation='softmax',
+    output_class = Dense(
+        4,
+        activation='softmax', 
         name='output_class'
-    )(x)
+    )(output_class)
 
-    output_bbox = layers.Dense(4, name='output_bbox')(x)
+    output_bbox = Dense(
+        32,
+        activation='relu'
+    )(base_model.output)
 
-    '''
-    initite a new model with the base_model neural network as our input
-    and our new 5 neurons for classification and localization tasks
-    which will output will be a single neuron for label prediction
-    and 4 neurons which correspond to coordinates
-    Example: (xmin, ymin, xmax, ymax)
-    '''
-    model = models.Model(inputs=base_model.input, outputs=[output_class, output_bbox])
+    output_bbox = Dense(
+        4,
+        name='output_bbox'
+    )(output_bbox)
+
+    model = Model(
+        inputs = base_model.input,
+        outputs = [
+            output_class, 
+            output_bbox
+        ]
+    )
 
     model.compile(
-        optimizer='adam',                                       #Adaptive Moment Estimation for best general optimization
         loss = {
-            'output_class': 'categorical_crossentropy',  #classification loss functions
-            'output_bbox': 'mse'                                #localization loss functions
-        },
+            'output_class': CategoricalCrossentropy(),
+            'output_bbox': MeanSquaredError()
+        }, 
+        optimizer = Adam(learning_rate=0.001),
         metrics = {
-            'output_class': 'accuracy',                         #classification metrics
-            'output_bbox': 'mae'                                #localization metrics
-        }
-    )
+            'output_class': ['accuracy'],
+            'output_bbox': [MeanAbsoluteError()]
+        },
+        loss_weights={'output_class':1, 'output_bbox':100})
 
     model.summary()
 

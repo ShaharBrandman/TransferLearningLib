@@ -1,6 +1,6 @@
 *.tar.gz
 __pycache__
-ssd_mobilenet_v2_coco_2018_03_29
+ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8
 serviceAccountKey.json
 data/images/*
 data/annotations/*
